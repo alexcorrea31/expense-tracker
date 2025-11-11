@@ -7,6 +7,23 @@ import os
 app = Flask(__name__)
 app.secret_key = "key"
 
+# Login Manager
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# Loading users from Database
+@login_manager.user_loader
+def load_user(user_id):
+    conn = sqlite3.connect('expenses.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    if user:
+        return User(id=user[0], username=user[1], password=user[2])
+    return None
+
 # Class to represent logged in users
 class User(UserMixin):
     def __init__(self, id, username, password):
@@ -32,7 +49,6 @@ def register():
         conn.close()
     return render_template('register.html')
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -51,30 +67,11 @@ def login():
             flash('Invalid credentials.')
     return render_template('login.html')
 
-
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
-
-
-# Loading users from Database
-@login_manager.user_loader
-def load_user(user_id):
-    conn = sqlite3.connect('expenses.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-    user = cursor.fetchone()
-    conn.close()
-    if user:
-        return User(id=user[0], username=user[1], password=user[2])
-    return None
-
-# Login Manager
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login' 
 
 # Connects app to the database + makes tables
 def init_db():
