@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Expense Tracker</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: auto; }
+    h1 { text-align: center; }
+    form { margin-bottom: 20px; }
+    input { margin: 5px; }
+    table, th, td { border: 1px solid gray; border-collapse: collapse; padding: 6px; width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>Expense Tracker</h1>
+
+  <!-- 🧾 This form sends data to your /add route -->
+  <form action="/add" method="POST">
+    <input type="text" name="name" placeholder="Item name" required>
+    <input type="number" step="0.01" name="amount" placeholder="Amount" required>
+    <input type="text" name="category" placeholder="Category">
+    <input type="date" name="date" required>
+    <button type="submit">Add Expense</button>
+  </form>
+</body>
+</html>
