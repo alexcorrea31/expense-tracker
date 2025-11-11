@@ -16,6 +16,16 @@ def init_db():
                     category TEXT,
                     date TEXT
                 )''')
+    
+    cursor.execute('''CREATE TABLE IF NOT EXISTS expenses (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT,
+                        amount REAL,
+                        category TEXT,
+                        date TEXT,
+                        user_id INTEGER,
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                    )''')
     conn.commit()
     conn.close()
     print('connection loaded')
