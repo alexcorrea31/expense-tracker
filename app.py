@@ -1,7 +1,8 @@
 from flask import Flask, request, redirect, render_template, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-import sqlite3
+import psycopg2
 import os
+from psycopg2.extras import RealDictCursor
 
 # Creates app
 app = Flask(__name__)
@@ -12,10 +13,15 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# PostgreSQL connection helper
+def get_connection():
+    db_url = os.getenv("DATABASE_URL")
+    return psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+
 # Loading users from Database
 @login_manager.user_loader
 def load_user(user_id):
-    conn = sqlite3.connect('expenses.db')
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
     user = cursor.fetchone()
@@ -37,7 +43,7 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        conn = sqlite3.connect('expenses.db')
+        conn = get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
@@ -54,7 +60,7 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        conn = sqlite3.connect('expenses.db')
+        conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
         user = cursor.fetchone()
@@ -75,26 +81,33 @@ def logout():
 
 # Connects app to the database + makes tables
 def init_db():
-    conn = sqlite3.connect('expenses.db')
+    conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT UNIQUE,
-                        password TEXT
-                    )''')
-    
-    cursor.execute('''CREATE TABLE IF NOT EXISTS expenses (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name TEXT,
-                        amount REAL,
-                        category TEXT,
-                        date TEXT,
-                        user_id INTEGER,
-                        FOREIGN KEY (user_id) REFERENCES users(id)
-                    )''')
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS expenses (
+            id SERIAL PRIMARY KEY,
+            name TEXT,
+            amount REAL,
+            category TEXT,
+            date TEXT,
+            user_id INTEGER REFERENCES users(id)
+        )
+    """)
+
     conn.commit()
+    cursor.close()
     conn.close()
-    print('connection loaded')
+    print("✅ PostgreSQL tables ensured in Neon.")
+
 
 
 @app.route('/test')
@@ -112,7 +125,7 @@ def add_expense():
     category = request.form['category']
     date = request.form['date']
     # Connect to DB, inserts into table
-    conn = sqlite3.connect('expenses.db')
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO expenses (name, amount, category, date, user_id) VALUES (?, ?, ?, ?, ?)",
           (name, amount, category, date, current_user.id))
@@ -125,7 +138,7 @@ def add_expense():
 @app.route('/')
 @login_required
 def index():
-    conn = sqlite3.connect('expenses.db')
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM expenses WHERE user_id = ?", (current_user.id,))
     expenses = cursor.fetchall()
