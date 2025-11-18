@@ -3,6 +3,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 import psycopg2
 import os
 from psycopg2.extras import RealDictCursor
+from psycopg2 import IntegrityError
 
 # Creates app
 app = Flask(__name__)
@@ -23,7 +24,7 @@ def get_connection():
 def load_user(user_id):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
     user = cursor.fetchone()
     conn.close()
     if user:
@@ -46,11 +47,12 @@ def register():
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+            cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
             conn.commit()
             flash('Registration successful! Please log in.')
             return redirect(url_for('login'))
-        except sqlite3.IntegrityError:
+        except IntegrityError:
+            conn.rollback()
             flash('Username already exists.')
         conn.close()
     return render_template('register.html')
@@ -62,7 +64,7 @@ def login():
         password = request.form['password']
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
+        cursor.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
         user = cursor.fetchone()
         conn.close()
         if user:
@@ -127,9 +129,8 @@ def add_expense():
     # Connect to DB, inserts into table
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO expenses (name, amount, category, date, user_id) VALUES (?, ?, ?, ?, ?)",
-          (name, amount, category, date, current_user.id))
-    
+    cursor.execute("INSERT INTO expenses (name, amount, category, date, user_id) VALUES (%s, %s, %s, %s, %s)",
+               (name, amount, category, date, current_user.id))
     conn.commit()
     conn.close()
     return redirect('/')
@@ -140,7 +141,7 @@ def add_expense():
 def index():
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM expenses WHERE user_id = ?", (current_user.id,))
+    cursor.execute("SELECT * FROM expenses WHERE user_id = %s", (current_user.id,))
     expenses = cursor.fetchall()
     conn.close()
     return render_template('index.html', expenses=expenses)
