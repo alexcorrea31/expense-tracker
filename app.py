@@ -54,7 +54,6 @@ def register():
         except IntegrityError:
             conn.rollback()
             flash('Username already exists.')
-        conn.close()
         finally:
             cursor.close()
             conn.close()
