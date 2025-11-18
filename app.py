@@ -28,7 +28,7 @@ def load_user(user_id):
     user = cursor.fetchone()
     conn.close()
     if user:
-        return User(id=user[0], username=user[1], password=user[2])
+        return User(id=user['id'], username=user['username'], password=user['password'])
     return None
 
 # Class to represent logged in users
