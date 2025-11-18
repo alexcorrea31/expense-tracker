@@ -1,3 +1,4 @@
+<!-- Render cache bust test  -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -43,11 +44,12 @@
     </tr>
     {% for e in expenses %}
     <tr>
-      <td>{{ e[1] }}</td>
-      <td>${{ "%.2f"|format(e[2]) }}</td>
-      <td>{{ e[3] }}</td>
-      <td>{{ e[4] }}</td>
+  	  <td>{{ e['name'] }}</td>
+  	  <td>${{ "%.2f"|format(e['amount']) }}</td>
+ 	   <td>{{ e['category'] }}</td>
+ 	   <td>{{ e['date'] }}</td>
     </tr>
+
     {% endfor %}
   </table>
   {% else %}
