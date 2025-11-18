@@ -55,6 +55,9 @@ def register():
             conn.rollback()
             flash('Username already exists.')
         conn.close()
+        finally:
+            cursor.close()
+            conn.close()
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -66,14 +69,16 @@ def login():
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
         user = cursor.fetchone()
+        cursor.close()
         conn.close()
         if user:
-            user_obj = User(id=user[0], username=user[1], password=user[2])
+            user_obj = User(id=user['id'], username=user['username'], password=user['password'])
             login_user(user_obj)
             return redirect(url_for('index'))
         else:
             flash('Invalid credentials.')
     return render_template('login.html')
+
 
 @app.route('/logout')
 @login_required
@@ -123,7 +128,7 @@ def test():
 def add_expense():
     # Get form data
     name = request.form['name']
-    amount = request.form['amount']
+    amount = float(request.form['amount'])
     category = request.form['category']
     date = request.form['date']
     # Connect to DB, inserts into table
@@ -132,6 +137,7 @@ def add_expense():
     cursor.execute("INSERT INTO expenses (name, amount, category, date, user_id) VALUES (%s, %s, %s, %s, %s)",
                (name, amount, category, date, current_user.id))
     conn.commit()
+    cursor.close()
     conn.close()
     return redirect('/')
 
@@ -143,6 +149,7 @@ def index():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM expenses WHERE user_id = %s", (current_user.id,))
     expenses = cursor.fetchall()
+    cursor.close()
     conn.close()
     return render_template('index.html', expenses=expenses)
 
