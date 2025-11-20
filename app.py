@@ -37,6 +37,11 @@ class User(UserMixin):
         self.id = id
         self.username = username
         self.password = password
+
+#Routes user to home
+@app.route('/home')
+def home():
+    return render_template('home.html')
         
 # Register, Login, and Logout routes
 @app.route('/register', methods=['GET', 'POST'])
@@ -140,8 +145,15 @@ def add_expense():
     conn.close()
     return redirect('/')
 
-# Returns data from HTML to homepage route
+#redirects unlogged users to home
 @app.route('/')
+def root():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    return redirect(url_for('home'))
+
+# Returns data from HTML to homepage route
+@app.route('/dashboard')
 @login_required
 def index():
     conn = get_connection()
